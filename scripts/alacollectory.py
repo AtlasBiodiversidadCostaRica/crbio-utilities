@@ -5,6 +5,7 @@ simple tool to access service from Ala generic-collectory project https://github
 
 import sys
 import urllib2 
+import urllib
 import json
 import unittest
 
@@ -31,6 +32,19 @@ class Collectory(object):
         path = "{0}/dataResource/downloadGBIFFile/?url={1}".format(self.collectoryUrl, url)
         response = self.collectoryGet(path)
         result = response.read()
+        return json.loads(result)
+
+    def lookup(self, institutionCode, collectionCode):
+        institutionCode = urllib2.quote(institutionCode)
+        collectionCode  = urllib2.quote(collectionCode)
+        # fix apache %2F transforme to /
+        collectionCode  = collectionCode.replace('/','%252F')
+
+        path = "{0}/ws/lookup/inst/{1}/coll/{2}".format(self.collectoryUrl,
+                                                        institutionCode,
+                                                        collectionCode)
+        print path
+        result = self.collectoryGet(path).read()
         return json.loads(result)
 
     def collectoryGet (self, path):
@@ -63,7 +77,19 @@ class Collectory(object):
         path = "{0}/providerCode/save".format(self.collectoryUrl)
         header = {'Content-Type':'application/x-www-form-urlencoded'}
         data = "code={}&create=Create".format(code)
-        return self.collectoryPost (path, data, header) 
+        return self.collectoryPost (path, data, header)
+    
+    def createProviderMap(self, collectionId, institutionCode, collectionCode):
+        # collectionId number in ProviderMap code add 1 to every collection code
+        collectionId = str(int(collectionId) + 1)
+        path = "{0}/providerMap/save".format(self.collectoryUrl)
+        header = {'Content-Type':'application/x-www-form-urlencoded'}
+        data = ("collection.id={0}&institutionCodes={1}&"
+                "collectionCodes={2}&matchAnyCollectionCode=on&"
+                "exact=on&create=Create").format(collectionId,
+                                        institutionCode,
+                                        collectionCode)
+        return self.collectoryPost (path, data, header)
 
     @classmethod
     def gbifOrganizationToAlaInstitution (cls, organization):
@@ -76,19 +102,29 @@ class Collectory(object):
         institution['acronym'] = ''
         institution['guid'] = organization['key']
         institution['address'] = {}
-        if hasattr(organization, 'city'):
+        if 'city' in organization:
             institution['address']['city'] = organization['city']
-        institution['address']['country'] = organization['country']
-        if hasattr(organization,'phone'):
+        if 'country' in organization:
+            institution['address']['country'] = organization['country']
+        if 'phone' in organization:
             institution['phone'] = organization['phone'][0]
-        if hasattr(organization,'email'):
+        if 'email' in organization:
             institution['email'] = organization['email'][0]
-        if hasattr(organization,'latitude'):
-            institution['latitude'] = organization['latitude']
-        if hasattr(organization,'longitude'):
-            institution['longitude'] = organization['longitude']
-        if hasattr(organization,'homepage'):
-            institution['websiteUrl'] =organization['homepage'][0]
+        if 'latitude' in organization:
+            latitude = organization['latitude']
+           # print latitude
+           # latitude = str(latitude)
+           # latitude = latitude.replace('.', ',')
+            institution['latitude'] = latitude
+           # print latitude
+        if 'longitude' in organization:
+            longitude = organization['longitude']
+           # longitude = str(longitude)
+           # longitude = longitude.replace('.', ',')
+            institution['longitude'] = longitude
+           # print longitude
+        if 'homepage' in organization:
+            institution['websiteUrl'] = organization['homepage'][0]
         return institution
 
 
@@ -106,7 +142,17 @@ class MyTest(unittest.TestCase):
     def test_provider(self):
         code = 'LD'
         result = self.collectory.createProviderCode(code)
+        print result.geturl()
+        print "last number is {}".format( re.search('[0-9]+$',
+                                                    result.geturl()).group(0))
         self.assertEqual(200, result.getcode())
+
+    def test_lookup(self):
+        institutionCode = 'LD'
+        collectionCode  = 'GENERAL'
+        result = self.collectory.lookup(institutionCode, collectionCode)
+        self.assertTrue(isinstance(result,dict))
+
 
 if __name__ == '__main__':
     unittest.main()
