@@ -12,9 +12,9 @@ sys.setdefaultencoding('utf8')
 print "start loading datasets"
 
 mypath = "/var/www/datasets/"
-collectory_path = "http://172.16.16.86/collectory"
+collectory_path = "http://172.16.16.85/collectory"
 api_key = "inbio_test"
-datasets_url = "http://172.20.60.64/datasets/"
+datasets_url = "http://10.0.2.184/datasets/"
 
 for root, dirs, files in walk(mypath):
     for file in files:

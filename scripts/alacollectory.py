@@ -48,6 +48,7 @@ class Collectory(object):
         return json.loads(result)
 
     def collectoryGet (self, path):
+        print path
         response = urllib2.urlopen(path)
         return response
 
