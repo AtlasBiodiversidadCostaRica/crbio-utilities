@@ -14,7 +14,8 @@ print "start loading datasets"
 mypath = "/var/www/datasets/"
 collectory_path = "http://172.16.16.85/collectory"
 api_key = "inbio_test"
-datasets_url = "http://10.0.2.184/datasets/"
+#datasets_url = "http://10.0.2.184/datasets/"
+datasets_url = "http://172.20.60.64/datasets/"
 
 for root, dirs, files in walk(mypath):
     for file in files:
@@ -87,6 +88,10 @@ for root, dirs, files in walk(mypath):
                                                     {'guid': datasetkey})
 
             collectionCollectory = collectionCollectory[0]
+
+            # add collection to data resource consumer
+            collectory.addConsumerCollection(dataResourceUid,
+                                             collectionCollectory['uid'])
 
             # provider codes
             dwcaInfo = DwcaInfo.getDwcaInfo (join(mypath,file))

@@ -8,6 +8,7 @@ import urllib2
 import urllib
 import json
 import unittest
+import re
 
 class Collectory(object):
 
@@ -46,6 +47,27 @@ class Collectory(object):
         print path
         result = self.collectoryGet(path).read()
         return json.loads(result)
+
+    def addConsumerCollection(self, drUid, coUid):
+        dataResource = self.search('dataResource', {'uid': drUid})
+        linkedRecordConsumers = []
+        linkedRecordConsumers.append(coUid)
+        if 'linkedRecordConsumers' in dataResource:
+            for consumer in dataResource['linkedRecordConsumers']:
+                linkedRecordConsumers.append(consumer['uid'])
+        drId = int(re.search('[0-9]+$', drUid).group(0)) + 1
+        data = {}
+        data['id'] = str(drId)
+        data['consumers'] = ','.join(linkedRecordConsumers)
+        data['_action_updateConsumers'] = 'Update'
+        data_string = []
+        for key, value in data.iteritems():
+            data_string.append("{}={}".format(key, value))
+        data_string = '&'.join(data_string)
+        path = '{0}/dataResource/base'.format(self.collectoryUrl)
+        header = {'Content-Type':'application/x-www-form-urlencoded'}
+        response = self.collectoryPost(path, data_string, header)
+        return response
 
     def collectoryGet (self, path):
         print path
@@ -131,7 +153,7 @@ class Collectory(object):
 
 class MyTest(unittest.TestCase):
     def setUp(self):
-        self.collectory = Collectory('http://172.16.16.86/collectory')
+        self.collectory = Collectory('http://172.16.16.85/collectory')
 
     def test_search(self):
         """test search functionality by any entity and criteria"""
@@ -153,6 +175,13 @@ class MyTest(unittest.TestCase):
         collectionCode  = 'GENERAL'
         result = self.collectory.lookup(institutionCode, collectionCode)
         self.assertTrue(isinstance(result,dict))
+
+    def test_addConsumerCollection(self):
+        drUid = 'dr0'
+        coUid = 'co334'
+        result = self.collectory.addConsumerCollection(drUid, coUid)
+        print result
+        self.assertEqual(200, result.getcode())
 
 
 if __name__ == '__main__':
