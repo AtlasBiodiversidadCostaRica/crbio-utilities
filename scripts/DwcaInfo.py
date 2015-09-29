@@ -12,36 +12,50 @@ import sys
 import zipfile
 import lxml.etree as etree
 
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 class DwcaInfo:
-    """Contain InstitutionCode, CollectionCode and datasetTitle"""
+    """Contain InstitutionCode, CollectionCode and dataset_title"""
 
     def __init__(self):
-        self.institutionCode = '' 
-        self.collectionCode  = ''
-        self.datasetTitle    = ''
+        self.institution_collection_codes = {}
+        self.dataset_title    = ''
 
-    def __getInstitutionCollection(self, file):
+    def __get_institution_collection(self, file):
         """find institutionCode and collectionCode"""
         # header line
         line = file.readline()
         line = line.split('\t')
         institutionIndex = line.index('institutionCode')
         collectionIndex  = line.index('collectionCode')
-    
-        # first data line
-        line = file.readline()
-        line = line.split('\t')
-        self.institutionCode = line[institutionIndex]
-        self.collectionCode  = line[collectionIndex]
+   
+        # iterate
+        for line in file:
+            line = line.split('\t')
+            ins_code = line[institutionIndex]
+            coll_code = line[collectionIndex]
+            if ins_code not in self.institution_collection_codes:
+                self.institution_collection_codes[ins_code] = []
+            institutions = self.institution_collection_codes[ins_code]
+            if coll_code not in institutions:
+                institutions.append(coll_code)
+
         return self
 
-    def __getDatasetTitle(self, file):
-        """ find datasetTitle inside xml file """
+    def __get_dataset_title(self, file):
+        """ find dataset_title inside xml file """
         tree = etree.parse(file)
         root = tree.getroot()
-        datasetTitle = root.find('dataset').find('title')
-        self.datasetTitle = datasetTitle.text
-        return datasetTitle.text
+        dataset_title = root.find('dataset').find('title')
+        self.dataset_title = dataset_title.text
+        return dataset_title.text
+
+    def print_institution_code_tuples(self):
+        for inst, colls in self.institution_collection_codes.iteritems():
+            for coll in colls:
+                print '{}|{}'.format(inst, coll)
+        return self
 
     @classmethod
     def getDwcaInfo(cls, fileName):
@@ -51,9 +65,9 @@ class DwcaInfo:
     
         dwcaInfo = cls()
 
-        cls.__getInstitutionCollection(dwcaInfo, file)
+        cls.__get_institution_collection(dwcaInfo, file)
     
-        # find datasetTitle, assume one dataset in the file
+        # find dataset_title, assume one dataset in the file
         datasetFilename = ''
         for name in zip.namelist():
             if name.startswith('dataset/'): 
@@ -61,7 +75,7 @@ class DwcaInfo:
                 break
     
         file = zip.open(datasetFilename)
-        cls.__getDatasetTitle(dwcaInfo, file)
+        cls.__get_dataset_title(dwcaInfo, file)
     
         return dwcaInfo
 
@@ -71,10 +85,8 @@ if __name__ == "__main__":
         fileName = sys.argv[1]
 
         dwcaInfo = DwcaInfo.getDwcaInfo(fileName)
-        print 'institution %s collection %s\ndataset: %s' % ( 
-                                dwcaInfo.institutionCode, 
-                                dwcaInfo.collectionCode,
-                                dwcaInfo.datasetTitle)
+        print 'dataset: {}'.format(dwcaInfo.dataset_title)
+        dwcaInfo.print_institution_code_tuples()
 
     except IndexError:
         print "usage: %s dwc-a_zip_file\n" % sys.argv[0]
