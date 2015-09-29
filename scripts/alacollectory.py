@@ -39,6 +39,7 @@ class Collectory(object):
         institutionCode = urllib2.quote(institutionCode)
         collectionCode  = urllib2.quote(collectionCode)
         # fix apache %2F transforme to /
+        institutionCode  = institutionCode.replace('/','%252F')
         collectionCode  = collectionCode.replace('/','%252F')
 
         path = "{0}/ws/lookup/inst/{1}/coll/{2}".format(self.collectoryUrl,
@@ -102,17 +103,47 @@ class Collectory(object):
         data = "code={}&create=Create".format(code)
         return self.collectoryPost (path, data, header)
     
-    def createProviderMap(self, collectionId, institutionCode, collectionCode):
+    def createProviderMap(self, collection_id, inst_coll_codes):
+        inst_provider_list = [] 
+        coll_provider_list = []
+        for inst_code, coll_list in inst_coll_codes:
+            inst_provider_code = ""
+            if not inst_code:
+                continue
+            for coll_code in coll_list:
+                if not coll_code:
+                    continue
+                lookup = self.lookup(inst_code, coll_code)
+                if 'error' in lookup:
+                    # providerCodes not found, create both and make the map
+                    if not inst_provider_code:
+                        result = self.createProviderCode (inst_code)
+                        inst_provider_code = re.search('[0-9]+$',
+                                    result.geturl()).group(0)
+                        inst_provider_list.append(inst_provider_code)
+                        print "last number is {}".format(inst_provider_code)
+                    result = self.createProviderCode(coll_code)
+                    coll_provider_code = re.search('[0-9]+$',
+                              result.geturl()).group(0)
+                    print "last number is {}".format(coll_provider_code)
+                    coll_provider_list.append(coll_provider_code)
+
         # collectionId number in ProviderMap code add 1 to every collection code
-        collectionId = str(int(collectionId) + 1)
+        collection_id = str(int(collection_id) + 1)
+        institution_codes = ['institutionCodes={0}'.format(i) for i in
+                             inst_provider_list]
+        institution_codes = '&'.join(institution_codes)
+        collection_codes = ['collectionCodes={0}'.format(i) for i in
+                            coll_provider_list]
+        collection_codes = '&'.join(collection_codes)
         path = "{0}/providerMap/save".format(self.collectoryUrl)
         header = {'Content-Type':'application/x-www-form-urlencoded'}
-        data = ("collection.id={0}&institutionCodes={1}&"
-                "collectionCodes={2}&matchAnyCollectionCode=on&"
-                "exact=on&create=Create").format(collectionId,
-                                        institutionCode,
-                                        collectionCode)
-        return self.collectoryPost (path, data, header)
+        data = ("collection.id={0}&{1}&"
+                "{2}&matchAnyCollectionCode=on&"
+                "exact=on&create=Create").format(collection_id,
+                                        institution_codes,
+                                        collection_codes)
+        result = self.collectoryPost (path, data, header)
 
     @classmethod
     def gbifOrganizationToAlaInstitution (cls, organization):

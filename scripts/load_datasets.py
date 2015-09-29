@@ -95,30 +95,11 @@ for root, dirs, files in walk(mypath):
 
             # provider codes
             dwcaInfo = DwcaInfo.getDwcaInfo (join(mypath,file))
+            
+            collectionId = re.search('[0-9]+',collectionCollectory['uid']).group(0)
+            collectory.createProviderMap(collectionId,
+                                         dwcaInfo.institution_collection_codes.iteritems())
 
-            if dwcaInfo.institutionCode and dwcaInfo.collectionCode:
-                # lookup providerCodes
-                lookup = collectory.lookup(dwcaInfo.institutionCode, dwcaInfo.collectionCode)
-                if 'error' in lookup:
-                    # providerCodes not found, create both and make the map
-                    result = collectory.createProviderCode (dwcaInfo.institutionCode)
-                    institutionProviderCode = re.search('[0-9]+$',
-                                                        result.geturl()).group(0)
-                    print "last number is {}".format(institutionProviderCode)
-                    result = collectory.createProviderCode (dwcaInfo.collectionCode)
-                    collectionProviderCode = re.search('[0-9]+$',
-                                                       result.geturl()).group(0)
-                    print "last number is {}".format(collectionProviderCode)
-                    # create the map
-                    print (collectionCollectory)
-                    collectionId = re.search('[0-9]+',collectionCollectory['uid']).group(0)
-                    print "collectionId = {}".format(collectionId)
-                    collectory.createProviderMap( collectionId,
-                                                 institutionProviderCode,
-                                                 collectionProviderCode)
-                else:
-                    print "providerCodes found"
-"""
-   """         
+
 
 
