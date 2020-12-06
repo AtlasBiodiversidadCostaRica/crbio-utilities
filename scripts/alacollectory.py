@@ -161,9 +161,9 @@ class Collectory(object):
         if 'country' in organization:
             institution['address']['country'] = organization['country']
         if 'phone' in organization:
-            institution['phone'] = organization['phone'][0]
+            institution['phone'] = organization['phone']
         if 'email' in organization:
-            institution['email'] = organization['email'][0]
+            institution['email'] = organization['email']
         if 'latitude' in organization:
             latitude = organization['latitude']
            # print latitude
@@ -178,7 +178,7 @@ class Collectory(object):
             institution['longitude'] = longitude
            # print longitude
         if 'homepage' in organization:
-            institution['websiteUrl'] = organization['homepage'][0]
+            institution['websiteUrl'] = organization['homepage']
         return institution
 
 
